@@ -8,6 +8,7 @@ TBA
 * Fixed a whitespace/newline false positive for control conditions containing lambdas. (#410)
 * We now error on relative include paths (``./``, ``../``). (#432)
    * This makes ``#include "./foo.h"`` produce two separate errors: that foo.cpp should include foo.h and that relative paths are not allowed.
+* Function template declarations and definitions with multiline template parameters no longer trigger ``whitespace/indent_namespace`` on their continuation lines.
 
 2.0.2 (2025-04-08)
 ===========

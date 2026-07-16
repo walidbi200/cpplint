@@ -331,6 +331,162 @@ class TestCpplint(CpplintTestBase):
         results = self.GetNamespaceResults(lines)
         assert results == ""
 
+    def testNamespaceIndentationMultilineFunctionTemplateDeclaration(self):
+        lines = [
+            "namespace Test {",
+            "template <typename Type1,",
+            "          typename Type2>",
+            "void TestFunc(const Type1 &var1, Type2 &var2);",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+        lines = [
+            "namespace Test {",
+            "template <typename T,",
+            "          typename Callback = void (*)(T)>",
+            "void Register(Callback callback);",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+        lines = [
+            "namespace Test {",
+            "template <typename T,",
+            "          bool Valid = requires { typename T::value_type; },",
+            "          typename U = void>",
+            "void Func();",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+        lines = [
+            "namespace Test {",
+            "template <typename T,",
+            "          typename U>",
+            "void Func(T t, U u) {",
+            "}",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+        lines = [
+            "namespace Test {",
+            "template <typename T,",
+            "          typename U>",
+            "void Func() requires requires (T t) { t.foo(); };",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+    def testNamespaceIndentationMultilineTemplateTemplateParameter(self):
+        lines = [
+            "namespace Test {",
+            "template <",
+            "    typename T,",
+            "    template <typename> class Container,",
+            "    typename U>",
+            "void Func();",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+        lines = [
+            "namespace Test {",
+            "template <",
+            "    typename T,",
+            "    template <class, class> class Map,",
+            "    typename U>",
+            "void Func();",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+        lines = [
+            "namespace Test {",
+            "template <typename T,",
+            "          template <typename> class Container,",
+            "          typename U>",
+            "void Func();",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+        lines = [
+            "namespace Test {",
+            "template <",
+            "    typename T,",
+            "    template <",
+            "        typename,",
+            "        template <typename> class",
+            "    > class Outer,",
+            "    typename U>",
+            "void Func();",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == ""
+
+    def testNamespaceIndentationUnrelatedPreviousTemplateNotSelected(self):
+        lines = [
+            "namespace Test {",
+            "template <typename T>",
+            "void First();",
+            "  int x;",
+            "template <typename U,",
+            "          typename V>",
+            "void Second();",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == (
+            "Do not indent within a namespace.  [whitespace/indent_namespace] [4]"
+        )
+
+        lines = [
+            "namespace Test {",
+            "template <",
+            "    typename T,",
+            "    template <typename> class Container,",
+            "    typename U>",
+            "class Foo {};",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == [
+            "Do not indent within a namespace.  [whitespace/indent_namespace] [4]",
+            "Do not indent within a namespace.  [whitespace/indent_namespace] [4]",
+            "Do not indent within a namespace.  [whitespace/indent_namespace] [4]",
+        ]
+
+    def testNamespaceIndentationMultilineNonFunctionTemplateStillWarns(self):
+        for decl in [
+            "class Foo;",
+            "struct Bar;",
+            "using Pair = Something<T, U>;",
+            "enum class E;",
+        ]:
+            lines = [
+                "namespace Test {",
+                "template <typename T,",
+                "          typename U>",
+                decl,
+                "}  // namespace Test",
+            ]
+            assert self.GetNamespaceResults(lines) == (
+                "Do not indent within a namespace.  [whitespace/indent_namespace] [4]"
+            )
+
+    def testNamespaceIndentationIndentedMultilineFunctionTemplateDeclaration(self):
+        lines = [
+            "namespace Test {",
+            "  template <typename Type1,",
+            "            typename Type2>",
+            "  void TestFunc(const Type1 &var1, Type2 &var2);",
+            "}  // namespace Test",
+        ]
+        assert self.GetNamespaceResults(lines) == [
+            "Do not indent within a namespace.  [whitespace/indent_namespace] [4]",
+            "Do not indent within a namespace.  [whitespace/indent_namespace] [4]",
+        ]
+
     def testNamespaceIndentationMemberInitializerList(self):
         lines = [
             "namespace Opossum {",

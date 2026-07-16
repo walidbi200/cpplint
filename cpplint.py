@@ -4129,7 +4129,11 @@ def CheckForNamespaceIndentation(filename, nesting_state, clean_lines, line, err
     )
 
     if ShouldCheckNamespaceIndentation(
-        nesting_state, is_namespace_indent_item, clean_lines.elided, line
+        nesting_state,
+        is_namespace_indent_item,
+        clean_lines.elided,
+        line,
+        clean_lines,
     ):
         CheckItemIndentationInNamespace(filename, clean_lines.elided, line, error)
 
@@ -7363,8 +7367,65 @@ def IsBlockInNameSpace(nesting_state: NestingState, is_forward_declaration: bool
     return False
 
 
+def IsMultilineFunctionTemplateDeclaration(clean_lines, linenum):
+    """Checks whether a line continues a function template parameter list.
+
+    The line is a continuation only when it lies inside the balanced
+    <...> span of a preceding 'template <', so tokens such as '{', '}',
+    or ';' belonging to a requires-expression or other default argument
+    inside that span never act as statement boundaries. Every candidate
+    is examined: an inner template-template parameter whose span already
+    closed is skipped so it cannot hide an enclosing outer list, and when
+    several spans nest, the outermost one owns the namespace-scope
+    declaration that is classified. That declaration must resolve to a
+    function declaration or definition; class, struct, enum, and using
+    declarations are intentionally not exempt.
+    """
+    enclosing = None
+    for start_line in range(linenum - 1, -1, -1):
+        line = clean_lines.elided[start_line]
+        matches = list(re.finditer(r"\btemplate\s*<", line))
+        for template in reversed(matches):
+            _, end_line, end_pos = CloseExpression(clean_lines, start_line, template.end() - 1)
+            if end_pos < 0:
+                continue
+            if not start_line < linenum <= end_line:
+                # Not an enclosing list (e.g. an inner template-template
+                # parameter, or an unrelated previous template that already
+                # closed). Keep searching older candidates.
+                continue
+            # Track the outermost enclosing span: intermediate spans belong
+            # to template-template parameter declarators, while the
+            # outermost header owns the declaration being classified.
+            enclosing = (end_line, end_pos)
+
+    if enclosing is None:
+        return False
+
+    end_line, end_pos = enclosing
+    declaration = clean_lines.elided[end_line][end_pos:]
+    for next_line in range(end_line + 1, clean_lines.NumLines()):
+        declaration += " " + clean_lines.elided[next_line].strip()
+        if re.search(r"[;{}]", declaration):
+            break
+
+    declaration = declaration.strip()
+    if not declaration:
+        return False
+    decl_head = re.split(r"[;{]", declaration, maxsplit=1)[0].strip()
+    if re.match(r"(?:class|enum|struct|using)\b", decl_head):
+        return False
+
+    function = re.search(r"\b(?!requires\b)(?:operator\s*\S+|~?[A-Za-z_]\w*)\s*\(", decl_head)
+    return function is not None and "=" not in decl_head[: function.start()]
+
+
 def ShouldCheckNamespaceIndentation(
-    nesting_state: NestingState, is_namespace_indent_item, raw_lines_no_comments, linenum
+    nesting_state: NestingState,
+    is_namespace_indent_item,
+    raw_lines_no_comments,
+    linenum,
+    clean_lines=None,
 ):
     """This method determines if we should apply our namespace indentation check.
 
@@ -7419,7 +7480,14 @@ def ShouldCheckNamespaceIndentation(
     ):
         return False
 
-    return IsBlockInNameSpace(nesting_state, is_forward_declaration)
+    # Skip continuation lines inside a multiline function template
+    # parameter list. This runs last so the backward template-span scan
+    # only happens for lines that would otherwise be checked.
+    if not IsBlockInNameSpace(nesting_state, is_forward_declaration):
+        return False
+    return not (
+        clean_lines is not None and IsMultilineFunctionTemplateDeclaration(clean_lines, linenum)
+    )
 
 
 # Call this method if the line is directly inside of a namespace.
