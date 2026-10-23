@@ -4,8 +4,8 @@ Backup audit: 2026-10-23. Originals remain in place. No secret values are record
 
 | Path | Approximate size | Why excluded | Reproducible / external backup |
 |---|---:|---|---|
-| `.venv/` | directory; see local audit | generated/local-only/nested or selective consolidation exclusion | Dependencies/builds: usually reproducible; credentials, source snapshots and databases: retain encrypted external backup as needed. |
-| `__pycache__/` | directory; see local audit | generated/local-only/nested or selective consolidation exclusion | Dependencies/builds: usually reproducible; credentials, source snapshots and databases: retain encrypted external backup as needed. |
+| `.venv/` | 141.07 MiB | generated/local-only/nested or selective consolidation exclusion | Dependencies/builds: usually reproducible; credentials, source snapshots and databases: retain encrypted external backup as needed. |
+| `__pycache__/` | 1.27 MiB | generated/local-only/nested or selective consolidation exclusion | Dependencies/builds: usually reproducible; credentials, source snapshots and databases: retain encrypted external backup as needed. |
 | `.mypy_cache/3.14/cache.0.db` | 0.36 MiB | secret-bearing filename, runtime/database, generated or archive format | Dependencies/builds: usually reproducible; credentials, source snapshots and databases: retain encrypted external backup as needed. |
 | `.mypy_cache/3.14/cache.1.db` | 0.42 MiB | secret-bearing filename, runtime/database, generated or archive format | Dependencies/builds: usually reproducible; credentials, source snapshots and databases: retain encrypted external backup as needed. |
 | `.mypy_cache/3.14/cache.2.db` | 0.50 MiB | secret-bearing filename, runtime/database, generated or archive format | Dependencies/builds: usually reproducible; credentials, source snapshots and databases: retain encrypted external backup as needed. |
